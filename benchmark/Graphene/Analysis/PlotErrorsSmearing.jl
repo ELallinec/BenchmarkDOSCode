@@ -22,3 +22,4 @@ for i in eachindex(Energies)
 	ax.set_title("$(Energies[i])")
 	#savefig("benchmark/Mono1D/fig/Mono1D_RelErrorsVsN_SmearedDOS_E=$(Energies[i]).png")
 end
+

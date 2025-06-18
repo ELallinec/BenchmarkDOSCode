@@ -41,7 +41,7 @@ ax[1].set_xlim(0, 401)
 ax[2].set_ylim(11, 14)
 ax[1].set_ylabel("Energies (eV)")
 ax[2].fill_betweenx(Energies, RefDos, color = :black, alpha = 0.1)
-# Draw hlines (now only one call is needed, but still use xmin/xmax for each subplot)
+# Draw hlines (now only one call is needed, but still u	se xmin/xmax for each subplot)
 ax[1].hlines([13.27, 13.34], xmin = 0, xmax = 400, color = "red", linestyle = "--")
 ax[2].hlines([13.27, 13.34], xmin = ax[2].get_xlim()[1], xmax = ax[2].get_xlim()[2], color = "red", linestyle = "--")
 

@@ -18,7 +18,7 @@ for i in eachindex(Energies)
 		temp4 = findall(index -> temp[i][j][index] <= 1e-3, eachindex(tolerances))
 		push!(temp3, temp4)
 		if !isempty(temp4)
-			push!(tempN3, minimum(IAINs[i, j, temp4]))
+			push!(tempN3, argmin(IAINs[i, j, temp4]))
 		else
 			push!(tempN3, Inf)
 		end
@@ -30,4 +30,4 @@ for i in eachindex(Energies)
 end
 
 
-testtt = findall(index -> temp[1][1][index] <= 1e-3, eachindex(tolerances))
+

@@ -1,8 +1,10 @@
 include("../SrVO3Parameters.jl")
 
-tabN = 3:100
-Energies = [11.55, 12.44, 13.29, 13.62]
+tabN = 3:300
+Energies = [11.55, 12.44, 13.19, 13.29, 13.46, 13.62]
 repo = "benchmark/SrVO3/Results/"
+ηlist = sort(unique([i * 10.0^(-j) for i in 1:0.1:10 for j in 1:3]), rev = true)
+tolerances = sort(unique([i * 10.0^(-j) for i in 1:0.1:10 for j in 1:5]), rev = true)
 
 bz = load_bz(CubicSymIBZ(), I(d))
 p0 = (; η = 1e-1, ω = 0.01)
@@ -113,7 +115,7 @@ IAItimes = zeros(length(Energies), length(ηlist), length(tolerances))
 	jldsave(repo * "ValuesIAI_Multipleηtemp.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances, exDOSη)
 end
 jldsave(repo * "ValuesIAI_Multipleη.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances, exDOSη)
-
+#=
 #! IAI absolute error
 allerrorsIAI = []
 tabNIAI = []
@@ -157,6 +159,7 @@ alltabη = []
 	push!(alltabtol, tabtol)
 	push!(alltabη, tabη)
 end
+
 @load "benchmark/SrVO3/Results/ValuesBCD_Multipleη_N3:100.jld2"
 @load "benchmark/SrVO3/Results/ValuesIAI_Multipleη.jld2"
 @load "benchmark/SrVO3/Results/ValuesPTR_Multipleη_N3:100.jld2"
@@ -230,3 +233,4 @@ for (ie, E) in enumerate(Energies)
 	ax.set_title("E=$(E)")
 	#savefig(repo * "../fig/Wall-ClockTimevsEtaE=$(E)tol=$(threshold).png")
 end
+=#

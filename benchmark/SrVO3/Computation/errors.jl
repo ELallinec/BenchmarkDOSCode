@@ -5,11 +5,14 @@ PyPlot.rc("mathtext", fontset = "dejavuserif")
 PyPlot.rc("font", size = 18)
 PyPlot.rc("figure", figsize = (9, 6 * 9 / 8))
 
-tabN = 3:50
+tabN = 3:100
 #Singularities at 11.57, 13.31, 13.64
-Energies = [11.55, 12.44, 13.29, 13.62]
-exDOS = RefDos[[20, 49, 78, 89]]
+Energies = [11.55, 12.44, 13.19, 13.29, 13.46, 13.62]
+exDOS = RefDos[[20, 49, 74, 78, 83, 89]]
 bz = load_bz(FBZ(), I(d))
+
+ηlist = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:3]), rev = true)               # 10 meV (scattering amplitude)
+tolerances = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:4]), rev = true)
 
 prob = DOSProblem(H, float(zero(1.0)), bz)
 BCDvalues = zeros((length(tabN), length(Energies)))

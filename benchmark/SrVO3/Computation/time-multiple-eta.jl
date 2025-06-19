@@ -5,8 +5,10 @@ Energies = [11.55, 12.44, 13.19, 13.29, 13.46, 13.62]
 repo = "benchmark/SrVO3/Results/"
 ηlist = sort(unique([i * 10.0^(-j) for i in 1:0.1:10 for j in 1:3]), rev = true)
 tolerances = sort(unique([i * 10.0^(-j) for i in 1:0.1:10 for j in 1:5]), rev = true)
-
 bz = load_bz(CubicSymIBZ(), I(d))
+prob = DOSProblem(H, float(zero(1.0)), bz)
+
+
 p0 = (; η = 1e-1, ω = 0.01)
 greens_function(k, h_k, (; η, ω)) = -imag(tr(inv((ω + im * η) * I - h_k))) / (π * (2π)^d)
 prototype = let k = AutoBZCore.FourierSeriesEvaluators.period(H)
@@ -36,32 +38,8 @@ function dos_solver_ptr(N, η)
 	end
 end
 
-prob = DOSProblem(H, float(zero(1.0)), bz)
-exDOSη = zeros(length(Energies), length(ηlist))
-cachetemp = AutoBZCore.init(prob, AutoBZCore.BCD(; npt = 201, α = 0.1 / (2π), ΔE = 0.5, η = 0))
-temp3 = []
-@time for (ie, e) in enumerate(Energies)
-	cachetemp.domain = e
-	temp2 = []
-	for (iη, η) in enumerate(ηlist)
-
-		cachetemp.alg = AutoBZCore.BCD(; npt = 401, α = 0.1 / (2π), ΔE = 0.5, η = ηlist[iη])
-		exDOSη[ie, iη] = AutoBZCore.solve!(cachetemp).value
-
-	end
-
-	jldsave(repo * "exDOS_Smearing_Multipletemp.jld2"; exDOSη, α = 0.1 / (2π), ΔE = 0.5, ηlist)
-end
-jldsave(repo * "exDOS_Smearing_Multiple.jld2"; exDOSη, α = 0.1 / (2π), ΔE = 0.5, ηlist)
-
-exDOS = zeros(length(Energies))
-@time for (ie, E) in enumerate(Energies)
-	cachetemp.domain = E
-	cachetemp.alg = AutoBZCore.BCD(; npt = 401, α = 0.1 / (2π), ΔE = 0.5, η = 0)
-	exDOS[ie] = AutoBZCore.solve!(cachetemp).value
-end
 #! BCD values
-prob = DOSProblem(H, float(zero(1.0)), bz)
+#=
 BCDvalues = zeros((length(Energies), length(ηlist), length(tabN)))
 BCDtimes = zeros((length(Energies), length(ηlist), length(tabN)))
 @time for (iN, N) in enumerate(tabN)
@@ -78,13 +56,12 @@ BCDtimes = zeros((length(Energies), length(ηlist), length(tabN)))
 
 		end
 	end
-	jldsave(repo * "ValuesBCD_Multipleη_N$(tabN)temp.jld2"; BCDtimes = BCDvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, η = 0, exDOSη)
+	jldsave(repo * "ValuesBCD_Multipleη_N$(tabN)temp.jld2"; BCDtimes, BCDvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, ηlist)
 end
-jldsave(repo * "ValuesBCD_Multipleη_N$(tabN).jld2"; BCDtimes, BCDvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, η = 0, exDOSη)
-#temperror = [[abs.(BCDvalues[ie, iη, :] .- exDOSη[ie, iη]) for iη in eachindex(ηlist)] for ie in eachindex(Energies)]
+jldsave(repo * "ValuesBCD_Multipleη_N$(tabN).jld2"; BCDtimes, BCDvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, ηlist)
+
 
 #! PTR values
-best_of(temp) = temp[argmin([norm(temp[i, :] - exDOS, Inf) for i in axes(temp, 1)]), :]
 PTRvalues = zeros(length(Energies), length(ηlist), length(tabN))
 PTRtimes = zeros(length(Energies), length(ηlist), length(tabN))
 
@@ -96,9 +73,10 @@ PTRtimes = zeros(length(Energies), length(ηlist), length(tabN))
 			PTRtimes[ie, iη, n-2] = ttemp.time
 		end
 	end
-	jldsave(repo * "ValuesPTR_Multipleη_N$(tabN)temp.jld2"; PTRtimes, PTRvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, η = 0, exDOSη)
+	jldsave(repo * "ValuesPTR_Multipleη_N$(tabN)temp.jld2"; PTRtimes, PTRvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, ηlist)
 end
-jldsave(repo * "ValuesPTR_Multipleη_N$(tabN).jld2"; PTRtimes, PTRvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, η = 0, exDOSη)
+jldsave(repo * "ValuesPTR_Multipleη_N$(tabN).jld2"; PTRtimes, PTRvalues, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5, ηlist)
+=#
 #! IAI values
 IAIvalues = zeros(length(Energies), length(ηlist), length(tolerances))
 IAINs = zeros(length(Energies), length(ηlist), length(tolerances))
@@ -112,9 +90,10 @@ IAItimes = zeros(length(Energies), length(ηlist), length(tolerances))
 			IAItimes[iE, iη, itol] = temp.time
 		end
 	end
-	jldsave(repo * "ValuesIAI_Multipleηtemp.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances, exDOSη)
+	jldsave(repo * "ValuesIAI_Multipleηtemp.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances)
 end
-jldsave(repo * "ValuesIAI_Multipleη.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances, exDOSη)
+jldsave(repo * "ValuesIAI_Multipleη.jld2"; IAIvalues, IAINs, IAItimes, Energies, ηlist, tolerances)
+
 #=
 #! IAI absolute error
 allerrorsIAI = []

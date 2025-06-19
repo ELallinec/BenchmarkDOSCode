@@ -1,2 +1,2 @@
 *.slurm
-SrVO3_MultipleEta_N=3:300-527320.out
+*.out

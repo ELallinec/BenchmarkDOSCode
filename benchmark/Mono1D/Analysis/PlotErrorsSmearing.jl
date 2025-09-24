@@ -1,8 +1,8 @@
 using PyPlot
 PyPlot.rc("font", family = "serif")
 PyPlot.rc("mathtext", fontset = "dejavuserif")
-PyPlot.rc("font", size = 18)
-PyPlot.rc("figure", figsize = (9, 6 * 9 / 8))
+PyPlot.rc("font", size = 25)
+PyPlot.rc("figure", figsize = (9 * 1.5, 6 * 9 * 1.5 / 8))
 using JLD2
 
 @load "benchmark/Mono1D/Results/ValuesBCD_Smearing_N3:3165.jld2"

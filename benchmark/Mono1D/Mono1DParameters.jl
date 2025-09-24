@@ -1,6 +1,6 @@
 using Pkg: Pkg
 if !(Base.active_project() == "/workdir/ewen.lallinec/BCD/docs/Project.toml")
-	Pkg.activate("docs")           # reproducible environment included
+	Pkg.activate(".")           # reproducible environment included
 end
 push!(LOAD_PATH, "src")
 using LinearAlgebra
@@ -31,15 +31,15 @@ end
 
 # IAI Parameters
 HIAI = FourierSeries([1, 0, 1], period = 1, offset = -2);
-tolerances = unique([i * 10.0^j for j in -10:-1 for i in 1:0.1:10])
+tolerances = sort(unique([i * 10.0^j for j in -8:-1 for i in 1:0.1:10]), rev = true)
 bz = load_bz(FBZ(d), I(d))
 
 # IAI and Smearing parameters
-ηlist = unique([i * 10.0^j for j in -5:-1 for i in 1:0.1:10]) #list of η for IAI and Smearing
+ηlist = sort(unique([i * 10.0^j for j in -10:-1 for i in 1:0.1:10]), rev = true) #list of η for IAI and Smearing
 
 # IAI and PTR solver 
 p0 = (; η = 1e-1, ω = 0.01)
-greens_function(k, h_k, (; η, ω)) = -imag(tr(inv((ω + im * η) * I - h_k))) / (π * (2π)^d)
+greens_function(k, h_k, (; η, ω)) = tr(inv((ω + im * η) * I - h_k))
 prototype = let k = AutoBZCore.FourierSeriesEvaluators.period(H)
 	greens_function(k, H(k), p0)
 end
@@ -66,3 +66,4 @@ function dos_solver_ptr(N, η)
 		getproperty(temp, :value)
 	end
 end
+

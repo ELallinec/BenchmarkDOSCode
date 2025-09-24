@@ -1,69 +1,95 @@
 include("../SrVO3Parameters.jl")
-tabN = 3:100
+
 repo = "benchmark/SrVO3/Results/"
 Energies = [11.55, 12.44, 13.19, 13.29, 13.46, 13.62] #Singularities at 11.57, 13.31, 13.64
-bz = load_bz(FBZ(), I(d))
-ηlist = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:3]), rev = true)               # 10 meV (scattering amplitude)
-tolerances = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:4]), rev = true)
+
+ηlist = sort(logrange(10^-4, 1, 14), rev = true)
+tolerances = sort(unique([i * 10.0^(-j) for i in [1, 5, 10] for j in 1:5]), rev = true)
+εF = 12.3958
+bz = load_bz(CubicSymIBZ(), "data/svo.wout")
+p0 = (; η = 1e-1, ω = εF) # initial parameters
+greens_function(k, h_k, (; η, ω)) = tr(inv((ω + im * η) * I - h_k))
+prototype = let k = FourierSeriesEvaluators.period(H)
+	greens_function(k, H(k), p0)
+end
+integrand = FourierIntegralFunction(greens_function, H, prototype)
+prob_dos = AutoBZProblem(TrivialRep(), integrand, bz, p0; abstol = 1e-5)
+
+
+function dos_solver_iai(η, atol)
+	solver = init(AutoBZProblem(TrivialRep(), integrand, bz1, p0; abstol = atol), EvalCounter(IAI(AuxQuadGKJL(order = 4))))
+	ω -> begin
+		solver.p = (; η, ω)
+		temp = solve!(solver)
+		@SVector [getproperty(temp, :value), getproperty(getproperty(temp, :stats), :numevals)]
+	end
+end
+
+function dos_solver_ptr(η)
+	solver = init(AutoBZProblem(TrivialRep(), integrand, bz, p0), AutoPTR(; nmin = 1); abstol = 1e-5)
+	ω -> begin
+		solver.p = (; η, ω)
+		temp = solve!(solver)
+
+		getproperty(temp, :value)
+	end
+end
+
+function dos_solver_ptr(η, N)
+	solver = init(AutoBZProblem(TrivialRep(), integrand, bz1, p0), PTR(npt = N))
+	ω -> begin
+		solver.p = (; η, ω)
+		temp = solve!(solver)
+
+		getproperty(temp, :value)
+	end
+end
+
 #=
-
-prob = DOSProblem(H, float(zero(1.0)), bz)
-BCDvalues = zeros(length(Energies), length(tabN))
-BCDtimes = zeros(length(Energies), length(tabN))
-@time for (iN, N) in enumerate(tabN)
-	cache = AutoBZCore.init(prob, AutoBZCore.BCD(; npt = N, α = 0.1 / (2π), ΔE = 0.5))
-	for (ie, e) in enumerate(Energies)
-		cache.domain = e
-		temp = @timed AutoBZCore.solve!(cache).value
-		BCDvalues[ie, iN] = temp.value
-		BCDtimes[ie, iN] = temp.time
-	end
-	jldsave(repo * "ValuesBCD_N=$(tabN)temp.jld2"; BCDvalues, BCDtimes, Energies, tabN, α = 0.1 / (2π), ΔE = 0.5)
-end
-jldsave(repo * "ValuesBCD_N=$(tabN).jld2"; BCDvalues, BCDtimes, Energies, tabN)
-
-bz = load_bz(FBZ(), I(d))
-prob = DOSProblem(H, float(zero(1.0)), bz)
-LTvalues = zeros(length(Energies), length(tabN))
-LTtimes = zeros(length(Energies), length(tabN))
-@time for (iN, N) in enumerate(tabN)
-	cache = AutoBZCore.init(prob, AutoBZCore.LT(; npt = N))
-	for (ie, e) in enumerate(Energies)
-		cache.domain = e
-		temp = @timed AutoBZCore.solve!(cache).value
-		LTvalues[ie, iN] = temp.value
-		LTtimes[ie, iN] = temp.time
-	end
-	jldsave(repo * "ValuesLT_N=$(tabN)temp.jld2"; LTvalues, LTtimes, Energies, tabN)
-end
-jldsave(repo * "ValuesLT_N=$(tabN).jld2"; LTvalues, LTtimes, Energies, tabN)
+IAIvalues = zeros(length(Energies), length(ηlist))
+IAItimes = zeros(length(Energies), length(ηlist))
+IAINs = zeros(length(Energies), length(ηlist))
 =#
-
-
-best_of(temp) = temp[argmin([norm(temp[i, :] - exDOS, Inf) for i in axes(temp, 1)]), :]
-PTRvalues = zeros(length(Energies), length(ηlist), length(tabN))
-PTRtimes = zeros(length(Energies), length(ηlist), length(tabN))
-@time for (iN, N) in enumerate(tabN)
-
-	for (iη, η) in enumerate(ηlist)
-		for (ie, E) in enumerate(Energies)
-			temp = @timed dos_solver_ptr(N, η)(E)
-			PTRvalues[ie, iη, iN] = temp.value
-			PTRvalues[ie, iη, iN] = temp.time
+IAIval = zeros(length(Energies), length(ηlist))
+IAItim = zeros(length(Energies), length(ηlist))
+IAIN = zeros(length(Energies), length(ηlist))
+for (ie, E) in enumerate(Energies)
+	@time for (iη, η) in enumerate(ηlist)
+		for (itol, tol) in enumerate(tolerances[end:end])
+			temp = @timed dos_solver_iai(η, tol)(E)
+			IAIval[ie, iη] = -imag(temp.value[1]) / det(bz.B) / π
+			IAIN[ie, iη] = temp.value[2]
+			IAItim[ie, iη] = temp.time
+			jldsave("benchmark/SrVO3/Results/ValuesIAI_Multipleη_1e-5.jld2"; PTRval, PTRtim, ηlist, εF)
 		end
 	end
-	jldsave(repo * "PTRValues_N=$(tabN)temp.jld2"; PTRvalues, PTRtimes, Energies, ηlist)
 end
-jldsave(repo * "PTRValues_N=$(tabN).jld2"; PTRvalues, PTRtimes, Energies, ηlist)
+jldsave("benchmark/SrVO3/Results/ValuesIAI_Multipleη_1e-5.jld2"; IAIval, IAItim, IAIN, ηlist, εF)
 
-IAIvalues = zeros(SVector{length(Energies), SVector{2, Float64}}, length(ηlist), length(tolerances))
-@time for (iη, η) in enumerate(ηlist)
-	for (itol, tol) in enumerate(tolerances)
-		IAIvalues[iη, itol] = dos_solver_iai(η, tol).(Energies)
+PTRval = zeros(length(Energies), length(ηlist))
+PTRtim = zeros(length(Energies), length(ηlist))
+for (iη, η) in enumerate(ηlist)
+	@time for (ie, E) in enumerate(Energies)
+
+		temp = @timed dos_solver_ptr(η)(E)
+		PTRval[ie, iη] = -imag(temp.value) / det(bz.B) / π
+		PTRtim[ie, iη] = temp.time
+		jldsave("benchmark/SrVO3/Results/ValuesPTR_Multipleη_1e-5.jld2"; PTRval, PTRtim, ηlist, εF)
 	end
 end
+#end
+#jldsave("benchmark/SrVO3/Results/ValuesIAI_Multipleη_1e-5.jld2"; IAIvalues, IAINs, IAItimes, ηlist, tolerances, Energies)
 
 
+plot(ηlist, IAItim, marker = :^, label = "IAI", lw = 5, markersize = 20)
+plot(ηlist, PTRtim, marker = :v, label = "PTR", lw = 5, markersize = 20)
+plot(ηlist[3:7], (ηlist[3:7] .^ -3) / 1000, "--k", label = "lin", lw = 5)
+plot(ηlist[8:end], log.(ηlist[8:end] .^ -1) .^ 3 / 10, "--k", label = "log3", lw = 5)
+legend()
+xlabel("η (eV)")
+ylabel("Time (s)")
+xscale(:log)
+yscale(:log)
 #=
 
 allN = [getindex.(IAIvalues[i], 2) for i in eachindex(IAIvalues)]

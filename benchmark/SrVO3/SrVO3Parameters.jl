@@ -51,6 +51,19 @@ dH = AutoBZCore.HessianSeries(H)
 tolerances = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:4]), rev = true)
 Energies = range(11, 14, 101)
 
-@load "benchmark/SrVO3/Results/RefDos.jld2"
+p0 = (; η = 1e-2, ω = 12.44) # initial parameters
+greens_function(k, h_k, (; η, ω)) = tr(inv((ω + im * η) * I - h_k))
+prototype = let k = FourierSeriesEvaluators.period(H)
+	greens_function(k, H(k), p0)
+end
+integrand = FourierIntegralFunction(greens_function, H, prototype)
 
-#temp=map(i -> maximum([norm(BCDvalues[i, 1:77] - RefDos[1:77], Inf), norm(BCDvalues[i, 79:end] - RefDos[79:end], Inf)]), 1:63)
+function dos_solver_ptr(N, η)
+	solver = init(AutoBZProblem(TrivialRep(), integrand, bz1, p0), PTR(npt = N))
+	ω -> begin
+		solver.p = (; η, ω)
+		temp = solve!(solver)
+
+		getproperty(temp, :value)
+	end
+end

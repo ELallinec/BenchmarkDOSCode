@@ -2,48 +2,32 @@ include("../GrapheneParameters.jl")
 using PyPlot
 PyPlot.rc("font", family = "serif")
 PyPlot.rc("mathtext", fontset = "dejavuserif")
-PyPlot.rc("font", size = 16)
-PyPlot.rc("figure", figsize = (9, 6 * 9 / 8))
+PyPlot.rc("font", size = 28)
+PyPlot.rc("figure", figsize = (9 * 1.5, 6 * 9 * 1.5 / 8))
 
-x = y = range(-0.5, 0.49, 30)
-BZ = DensityOfStates.BZ(d, 30)
+x = y = range(-0.5, 0.49, 51)
+BZ = [[i[1], i[2]] for i in Iterators.product(x, y)]
 
-tabh = (H.(BZ) + adjoint.(H.(BZ))) / 2
+tabh = (tb_graphene.(BZ) + adjoint.(tb_graphene.(BZ))) / 2
 tabε = map(h -> eigvals(h)[2], tabh)
-tabd1h = map(k -> DH(k)[2], BZ)
-
 tempE = 2
 
-temp = findall(i -> abs(tabε[i] .- tempE) <= 5e-4, CartesianIndices(tabε))
-xs = x[[t[1] for t in temp]]
-ys = y[[t[2] for t in temp]]
-cs = contour(x, y, tabε, levels = [tempE], color = :b)
-p = cs.collections[1].get_paths()[1]
-v = p.vertices
-xs = v[:, 1]
-ys = v[:, 2]
-temp1 = 10
-for i in eachindex(x)
-	for j in eachindex(y)
-		h, d1h, d2h = DH([x[i], y[j]])
-		temp = norm(-7e-3 * real.([tr(d1h[m] * exp(-((tabh[i, j] - tempE * I) / 0.5)^2)) for m in eachindex(d1h)]))
-		if temp1 > temp && temp > 0
-			temp1 = temp
-		end
-	end
-end
-
+levels = [tempE]
+cs = contour(x, y, tabε, levels = levels, colors = ["red"], linewidths = [5])
+xs = ys = range(-0.5, 0.49, 17)
+smallBZ = [[i[1], i[2]] for i in Iterators.product(xs, ys)]
 using PyCall
-for i in eachindex(x)
-	for j in eachindex(y)
-		h, d1h, d2h = DH([x[i], y[j]])
-		temp = -7e-3 * real.([tr(d1h[m] * exp(-((tabh[i, j] - tempE * I) / 0.5)^2)) for m in eachindex(d1h)])
+for ind in smallBZ[1:end-1]
+	h, d1h, d2h = DH([ind[1], ind[2]])
+	temp = -7e-3 * real.([tr(d1h[m] * exp(-((h - tempE * I) / 0.5)^2)) for m in eachindex(d1h)])
 
-		arrow(x[i], y[j], temp[1], temp[2])
-	end
+	arrow(ind[1], ind[2], temp[1], temp[2], head_width = 0.35 * norm(temp), width = 0.003, color = :k)
 end
+plot([], [], color = "red", lw = 5, label = "Fermi Level")  # empty plot with color + label
+plot([], [], c = "black", marker = "\$\\rightarrow\$", linestyle = "none", markersize = 40, label = "Deformation")
 xlabel(L"k_x")
 ylabel(L"k_y")
+legend(loc = "upper left", fontsize = 22)
 
 include("../GrapheneParameters.jl")
 
@@ -61,9 +45,9 @@ locator_params(nbins = 3)
 xlabel(L"k_x")
 ylabel(L"k_y")
 zlabel(latexstring("\\varepsilon_{\\pm}"))
-fig,ax = subplots()
+fig, ax = subplots()
 fig = figure()
-ax = fig.add_subplot(111, projection="3d") # Correct way in Julia
+ax = fig.add_subplot(111, projection = "3d") # Correct way in Julia
 
 plot_surface(tabx, taby, εm, linewidth = 0, cmap = :viridis)
 plot_surface(tabx, taby, εp, linewidth = 0, cmap = :viridis)

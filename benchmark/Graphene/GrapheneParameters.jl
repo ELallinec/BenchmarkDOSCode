@@ -48,7 +48,7 @@ function dos_graphene_exact(E::Real, t = oneunit(E))
 end
 
 p0 = (; η = 1e-1, ω = 0.01)
-greens_function(k, h_k, (; η, ω)) = -imag(tr(inv((ω + im * η) * I - h_k))) / (π * (2π)^d)
+greens_function(k, h_k, (; η, ω)) = tr(inv((ω + im * η) * I - h_k))
 prototype = let k = AutoBZCore.FourierSeriesEvaluators.period(H)
 	greens_function(k, H(k), p0)
 end
@@ -78,6 +78,6 @@ function dos_solver_ptr(N, η)
 end
 
 
-ηlist = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:3]))
-tolerances = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:5]))
+ηlist = sort(unique([i * 10.0^(-j) for i in 1:10 for j in 1:5]), rev = true)
+tolerances = sort(unique([i * 10.0^(-j) for i in [1, 5, 10] for j in 1:5]), rev = true)
 

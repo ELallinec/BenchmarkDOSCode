@@ -8,26 +8,18 @@ using JLD2
 @load "benchmark/Graphene/Results/ValuesIAI.jld2"
 
 temp = [[abs.(IAIvalues[i, j, :] .- exDOSη[i, j]) for j in eachindex(ηlist)] for i in eachindex(Energies)]
-
-temp2 = []
-tempN2 = []
-for i in eachindex(Energies)
-	temp3 = []
-	tempN3 = []
-	for j in eachindex(ηlist)
-		temp4 = findall(index -> temp[i][j][index] <= 1e-3, eachindex(tolerances))
-		push!(temp3, temp4)
-		if !isempty(temp4)
-			push!(tempN3, argmin(IAINs[i, j, temp4]))
-		else
-			push!(tempN3, Inf)
-		end
-
-		#println(temp3)
+for i in [2, 5, 6]
+	fig, ax = subplots()
+	for itol in eachindex(tolerances)
+		ax.plot(Int64.(round.(IAINs[i, :, itol] .^ (1 / 2))), abs.(IAIvalues[i, :, itol] .- exDOS[i]) / exDOS[i], label = "tol=$(tolerances[itol])", "--", marker = :x)
 	end
-	push!(tempN2, tempN3)
-	push!(temp2, temp3)
+	ax.plot(tabNIAI[i], allerrorsIAI[i] / exDOS[i])
+	ax.set_yscale(:log)
+	ax.set_xlabel("N")
+	ax.set_ylabel("Error")
+	ax.set_title("E=$(Energies[i])")
+	ax.legend(fontsize = 15, ncol = 3)
 end
 
 
-
+close("all")

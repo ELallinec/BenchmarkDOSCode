@@ -2,7 +2,7 @@ include("../GrapheneParameters.jl")
 using PyPlot
 PyPlot.rc("font", family = "serif")
 PyPlot.rc("mathtext", fontset = "dejavuserif")
-PyPlot.rc("font", size = 18)
+PyPlot.rc("font", size = 25)
 PyPlot.rc("figure", figsize = (9, 6 * 9 / 8))
 
 

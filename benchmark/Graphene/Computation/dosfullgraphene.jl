@@ -13,6 +13,12 @@ using JLD2
 using ForwardDiff
 using FourierSeriesEvaluators
 using Revise
+using PyPlot
+using Colors
+PyPlot.rc("font", family = "serif")
+PyPlot.rc("mathtext", fontset = "dejavuserif")
+PyPlot.rc("font", size = 25)
+PyPlot.rc("figure", figsize = (9 * 1.5, 6 * 9 * 1.5 / 8))
 #Common parameters
 const d = 2;
 const J = 8;
@@ -39,6 +45,7 @@ for i in tempR
 end
 
 H = FourierSeries(H_R, period = 1)
+H1 = HermitianFourierSeries(H)
 DH = HessianSeries(H)
 #! Verification de la tronche des bandes
 G = zeros(2)
@@ -50,76 +57,93 @@ function segment(p1, p2, N)
 end
 
 function path(tabpath, N)
-	return reduce(vcat, [(i == length(tabpath) - 1 ? segment(tabpath[i], tabpath[i+1], N) : segment(tabpath[i], tabpath[i+1], N)[1:end-1]) for i in eachindex(tabpath[1:end-1])])
+	tabdiff = norm.(diff(tabpath))
+	maxdist = maximum(tabdiff)
+
+	return reduce(vcat, [(i == length(tabpath) - 1 ? segment(tabpath[i], tabpath[i+1], Int64(round(N * tabdiff[i] / maxdist))) : segment(tabpath[i], tabpath[i+1], Int64(round(N * tabdiff[i] / maxdist)))[1:end-1]) for i in eachindex(tabpath[1:end-1])]),
+	Int64.(round.(N * tabdiff / maxdist))
 end
 
-thepath = path(tabpath, 500)
+thepath, npt = path(tabpath, 500)
 
-bands = reduce(hcat, map(k -> real(eigen(H(k)).values), thepath))
+bands = reduce(hcat, map(k -> eigvals(H1(k)), thepath))
 
-fig, ax = subplots(1, 2, width_ratios = [3, 2])
-fig.subplots_adjust(wspace = 0.0)
-ax[1].plot(bands', linewidth = 2)
+
+gold = "#ffa600"
+dark_navy = "#003f5c"
+rust_orange = "#bc5090"
+teal = "#2A9D8F"
+slate_gray = "#7a5195"
+light_blue = "#4393c3"
+soft_olive = "#a6a631"
+clear_gray = "#c0c0c0"
+linecolor = "#4A90E2"
+εF = -2.3043
+fig, ax = subplots(1, 2)
+ax[1].plot(bands[1, :] .- εF, linewidth = 5, color = gold)
+ax[1].plot(bands[2, :] .- εF, linewidth = 5, color = dark_navy)
+ax[1].plot(bands[3, :] .- εF, linewidth = 5, color = rust_orange)
+ax[1].plot(bands[4, :] .- εF, linewidth = 5, color = teal)
+ax[1].plot(bands[5, :] .- εF, linewidth = 5, color = slate_gray)
+ax[1].plot(bands[6, :] .- εF, linewidth = 5, color = light_blue)
+ax[1].plot(bands[7, :] .- εF, linewidth = 5, color = soft_olive)
+ax[1].plot(bands[8, :] .- εF, linewidth = 5, color = clear_gray)
 ax[1].set_xlabel("k-points")
-ax[1].set_xticks([1, 501, 1001, 1501])
+ax[1].set_xticks(vcat(1, cumsum(npt) .+ 1))
 ax[1].set_xticklabels(["G", "M", "K", "G"])
-ax[1].vlines([1, 501, 1001, 1501], -24, 24, colors = :black)
-ax[1].hlines(-8.787, 1, 1501, color = :b, linewidth = 2, label = "van Hove", linestyle = :dashed)
-ax[1].hlines([-8.74, -8.62, -8.175, -7.73], 1, 1501, colors = [:k, :k, :k, :k], linestyles = :dashed, linewidths = 2, label = "Crossing")
-ax[1].set_ylim(-10, -7)
+ax[1].vlines(vcat(1, cumsum(npt) .+ 1), -24, 24, colors = :black)
+ax[1].hlines([-8.74, -8.622, -8.18, -7.728] .- εF, 1, 1501, colors = [linecolor, linecolor, linecolor, linecolor], linestyles = :dashed, linewidths = 5)
+ax[1].set_ylim(-9.0 .- εF, -7.0 .- εF)
 ax[1].set_xlim(0, 1501)
 ax[1].set_ylabel("Energies (eV)")
-
-
-ax[2].plot(BCDvalues, tempEnergies, color = :red, linewidth = 2, label = "BCD")
-ax[2].plot(temp * 0.7 / 3.9699993263322284, tempEnergies, color = :blue, linewidth = 2, label = "BCD")
-#ax[2].plot(LTvalues, tempEnergies, color = :black, linewidth = 2, label = "Reference", linestyle = :dotted)
-ax[2].hlines([-8.787, -8.74, -8.62, -8.175, -7.73], 0, 0.7, colors = [:b, :k, :k, :k, :k], linestyles = :dashed, linewidths = 2)
+ax[2].plot(BCDvalues, tempEnergies .- εF, color = :red, linewidth = 5, label = "BCD")
+ax[2].plot(LTvalues, tempEnergies .- εF, color = :black, linewidth = 5, label = "Reference", linestyle = :dotted)
+ax[2].hlines([-8.74, -8.622, -8.18, -7.728] .- εF, 0, maximum(LTvalues) * 1.1, colors = [linecolor, linecolor, linecolor, linecolor], linestyles = :dashed, linewidths = 5, label = "Crossings")
 ax[2].set_xticks([])
 ax[2].set_yticks([])
 ax[2].set_xlabel("DOS")
 ax[2].set_yticks([])
-#ax[2].set_xlim(0, 0.7)
-ax[2].set_ylim(-10, -7)
-#ax[2].legend()
-ax[2].fill_betweenx(tempEnergies, BCDvalues, color = :black, alpha = 0.2)
-ax[2].fill_betweenx(tempEnergies, LTvalues, color = :black, alpha = 0.1)
-fig.legend()
+ax[2].set_ylim(-9.0 .- εF, -7.0 .- εF)
+ax[2].set_xlim(0, maximum(LTvalues) * 1.05)
+ax[2].fill_betweenx(tempEnergies .- εF, BCDvalues, color = :black, alpha = 0.2)
+ax[2].fill_betweenx(tempEnergies .- εF, LTvalues, color = :black, alpha = 0.1)
+fig.legend(loc = "center right", bbox_to_anchor = (0.97, 0.86), fontsize = 21)
+tight_layout()
+fig.subplots_adjust(wspace = 0.0)
 Energies = range(-22, 23, 200)
 bz = load_bz(FBZ(), I(d))
 prob = DOSProblem(H, 0.99, bz)
-
-tempEnergies = range(-10, -7, 61)
-tempEnergies = Energies
-
+tempEnergies = range(-9, -7, 201)
+#tempEnergies = Energies
 
 
-probLT = prob = DOSProblem(H, 0.99, bz)
+
+probLT = DOSProblem(H1, 0.99, bz)
 
 LTvalues = zeros(length(tempEnergies))
 LTtimes = zeros(length(tempEnergies))
-@time cache2 = AutoBZCore.init(prob, AutoBZCore.LT(; npt = 1000));
-@time for (ie, e) in enumerate(tempEnergies)
+@time cache2 = AutoBZCore.init(prob, AutoBZCore.LT(; npt = 3000));
+@time for (ie, e) in enumerate(tempEnergies[1:end])
 	cache2.domain = e
 	temp = @timed AutoBZCore.solve!(cache2).value
 	LTvalues[ie] = temp.value
 	LTtimes[ie] = temp.time
 end
-#jldsave("benchmark/Graphene/Results/FullGrapheneLT1000.jld2"; Energies = tempEnergies, LTvalues)
+jldsave("benchmark/Graphene/Results/GrapheneLT3000_E7-9.jld2"; Energies = tempEnergies, LTvalues)
 
 BCDvalues = zeros(length(tempEnergies))
-BCDtimes = zeros(length(tempEnergies))
-@time cache1 = AutoBZCore.init(prob, AutoBZCore.BCD(; npt = 100, α = 0.04 / 2π, ΔE = 0.2));
-tempdef = []
-tempddef = []
-@time for (ie, e) in enumerate(tempEnergies)
+@time cache1 = AutoBZCore.init(prob, AutoBZCore.BCD(; npt = 500, α = 0.04 / 2π, ΔE = 0.5));
+@time for (ie, e) in enumerate(tempEnergies[1:end])
 	cache1.domain = e
-	temp = @timed AutoBZCore.solve!(cache1).value
-	BCDvalues[ie] = temp.value
-
-	BCDtimes[ie] = temp.time
+	BCDvalues[ie] = AutoBZCore.solve!(cache1).value
 end
+jldsave("benchmark/Graphene/Results/GrapheneBCD500_E7-9.jld2"; BCDvalues, α = 0.04 / 2π, ΔE = 0.5, Energies = tempEnergies)
 
+plot(Energies, temp * (2π)^2 / 2500, label = "Eigen Deformation", linewidth = 3)
+plot(Energies, BCDvalues, label = "BCD", linewidth = 3)
+plot(Energies, LTvalues, label = "LT", linewidth = 3)
+ylim(-0.05, 1.0)
+legend()
 #jldsave("benchmark/Graphene/Results/FullGrapheneBCD200.jld2"; Energies = tempEnergies, BCDvalues)
 
 temp0 = []
@@ -269,22 +293,26 @@ end
 
 using LinearAlgebra, StaticArrays
 
-function BCD_zeub(E, α = 0.1 / 2π, ΔE = 0.7)
+function BCD_zeub(E, α = 0.04 / 2π, ΔE = 0.7, δ = 1e-6)
 	res = 0
 	for k in smallbz
 		for j in 1:J
 
-			res += 1 / (E - eigen(H(k - im * α * deformation(k, j, E, ΔE))).values[j]) * det(I - im * α * Ddeformation_fe(k, j, E, ΔE))
+			res += 1 / (E - eigen(H(k - im * α * deformation(k, j, E, ΔE))).values[j]) * det(I - im * α * Ddeformation_fe(k, j, E, ΔE, δ))
 		end
 	end
 	return res / (2π)^2 / π
 end
 
-function deformation(k, j, E, ΔE = 0.5)
+function deformation(k, j, E, ΔE = 0.7)
 	λj = eigen(H(k)).values[j]
 	∇λj = ForwardDiff.gradient(k -> eigvals(H1(k))[j], k)
 	return ∇λj * exp(-(λj - E)^2 / ΔE^2)
 end
-function Ddeformation_fe(k, j, E, ΔE = 0.5, δ = 1e-10)
+function Ddeformation_fe(k, j, E, ΔE = 0.7, δ = 1e-6)
 	return hcat((deformation(k + δ * [1, 0], j, E, ΔE) - deformation(k - δ * [1, 0], j, E, ΔE)) / 2δ, (deformation(k + δ * [0, 1], j, E, ΔE) - deformation(k - δ * [0, 1], j, E, ΔE)) / 2δ)
 end
+
+
+@time temp = -imag.(BCD_zeub.(Energies, 0.04 / 2π, 0.7, 1e-6))
+jldsave("benchmark/Graphene/Results/BCD_zeubN200.jld2"; temp)

@@ -1,3 +1,10 @@
 *.slurm
 *.out*.jld2
 *.dat
+AutoBZCore.jl/
+benchmark/Graphene/Results/convexe.jld2
+benchmark/Mono1D/Results/ValuesPTR_N3:1500_final.jld2
+data/graphene.wout
+fig/
+test/
+.gitignore.swp

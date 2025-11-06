@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.1"
+julia_version = "1.11.6"
 manifest_format = "2.0"
-project_hash = "186c64255a3672ad72c186e76ab43fc340d1bccd"
+project_hash = "6818a70e45e2478bc577a9ac547fcabfac9cb191"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1120,7 +1120,7 @@ version = "0.3.27+1"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.5+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]

@@ -12,7 +12,6 @@ using JLD2
 #using DensityOfStates
 using ForwardDiff
 using FourierSeriesEvaluators
-using Revise
 using PyPlot
 using Colors
 PyPlot.rc("font", family = "serif")

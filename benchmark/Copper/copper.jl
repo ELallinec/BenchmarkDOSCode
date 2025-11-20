@@ -12,12 +12,7 @@ using JLD2
 #using DensityOfStates
 using ForwardDiff
 using FourierSeriesEvaluators
-using PyPlot
-using Colors
-PyPlot.rc("font", family = "serif")
-PyPlot.rc("mathtext", fontset = "dejavuserif")
-PyPlot.rc("font", size = 25)
-PyPlot.rc("figure", figsize = (9 * 1.5, 6 * 9 * 1.5 / 8))
+
 #Common parameters
 const d = 3;
 const J = 5;
@@ -48,7 +43,7 @@ end
 H = FourierSeries(H_R, period = 1)
 H1 = HermitianFourierSeries(H)
 DH = HessianSeries(H)
-
+#=
 G = [0.000, 0.000, 0.000]
 X = [0.500, 0.500, 0.000]
 W = [0.500, 0.750, 0.250]
@@ -61,6 +56,8 @@ xticks([1, 101, 151, 222, 309, 450], ["G", "X", "W", "L", "G", "K"])
 vlines([1, 101, 151, 222, 309, 450], minimum(reduce(hcat, eigvals.(H1.(eigkpt.kpoints)))) * 0.99, maximum(reduce(hcat, eigdat.eigenvalues)) * 1.01, color = :k, lw = 3)
 ylim(minimum(reduce(hcat, eigvals.(H1.(eigkpt.kpoints)))) * 0.99, maximum(reduce(hcat, eigdat.eigenvalues)) * 1.01)
 ylim(6.5, 8.25)
+
+=#
 Energies = range(8, 10, 101)
 
 bzBCD = load_bz(FBZ(), I(d))
@@ -68,28 +65,29 @@ bzLT = load_bz(FBZ(), I(d))
 probBCD = DOSProblem(H, Energies[1], bzBCD)
 probLT = DOSProblem(H, Energies[1], bzLT)
 
-
+α = 0.06 / 2π
+ΔE = 0.05
 BCDvalues = zeros(length(Energies))
-@time cache1 = AutoBZCore.init(probBCD, AutoBZCore.BCD(; npt = 30, α = 0.06 / 2π, ΔE = 0.2));
+@time cache1 = AutoBZCore.init(probBCD, AutoBZCore.BCD(; npt = 3, α = α, ΔE = ΔE));
 cache1.domain = Energies[50]
 @time tempBCD = AutoBZCore.solve!(cache1).value
+@time cache1 = AutoBZCore.init(probBCD, AutoBZCore.BCD(; npt = 100, α = α, ΔE = ΔE));
 @time for (ie, e) in enumerate(Energies[1:end])
 	cache1.domain = e
 	BCDvalues[ie] = AutoBZCore.solve!(cache1).value
 end
 
-
+jldsave("benchmark/Copper/CopperBCD100DE=$(ΔE)a=$(α*2π).jld2"; BCDvalues, Energies, α, ΔE)
+#=
 LTvalues = zeros(length(Energies))
-@time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 100));
+@time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 3));
 cache2.domain = Energies[50]
 @time tempLT = AutoBZCore.solve!(cache2).value
+@time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 700));
 @time for (ie, e) in enumerate(Energies[1:end])
 	cache2.domain = e
 	LTvalues[ie] = AutoBZCore.solve!(cache2).value
 end
 
-
-fig = figure()
-ax = fig.add_subplot(projection = "3d")
-ax.scatter(getindex.(Rvecs, 1), getindex.(Rvecs, 2), norm.(C) ./ hrdat.Rdegens)
-ax.set_zscale(:log)
+jldsave("benchmark/Copper/CopperLT700.jld2"; LTvalues, Energies)
+=#

@@ -58,15 +58,16 @@ ylim(minimum(reduce(hcat, eigvals.(H1.(eigkpt.kpoints)))) * 0.99, maximum(reduce
 ylim(6.5, 8.25)
 
 =#
-Energies = range(8, 10, 101)
+Energies = range(9.6, 10, 101)
 
 bzBCD = load_bz(FBZ(), I(d))
 bzLT = load_bz(FBZ(), I(d))
 probBCD = DOSProblem(H, Energies[1], bzBCD)
 probLT = DOSProblem(H, Energies[1], bzLT)
-
-α = 0.06 / 2π
+#=
+α = 0.03 / 2π
 ΔE = 0.05
+
 BCDvalues = zeros(length(Energies))
 @time cache1 = AutoBZCore.init(probBCD, AutoBZCore.BCD(; npt = 3, α = α, ΔE = ΔE));
 cache1.domain = Energies[50]
@@ -77,17 +78,16 @@ cache1.domain = Energies[50]
 	BCDvalues[ie] = AutoBZCore.solve!(cache1).value
 end
 
-jldsave("benchmark/Copper/CopperBCD100DE=$(ΔE)a=$(α*2π).jld2"; BCDvalues, Energies, α, ΔE)
-#=
+jldsave("benchmark/Copper/CopperBCD100DE=$(ΔE)a=$(α*2π)E9.6-10.jld2"; BCDvalues, Energies, α, ΔE)
+=#
 LTvalues = zeros(length(Energies))
 @time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 3));
 cache2.domain = Energies[50]
 @time tempLT = AutoBZCore.solve!(cache2).value
-@time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 700));
+@time cache2 = AutoBZCore.init(probLT, AutoBZCore.LT(; npt = 500));
 @time for (ie, e) in enumerate(Energies[1:end])
 	cache2.domain = e
 	LTvalues[ie] = AutoBZCore.solve!(cache2).value
 end
 
 jldsave("benchmark/Copper/CopperLT700.jld2"; LTvalues, Energies)
-=#

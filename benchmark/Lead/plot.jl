@@ -48,10 +48,9 @@ H1 = HermitianFourierSeries(H)
 DH = HessianSeries(H)
 DH1 = HessianSeries(H1)
 
-N=100
-tabpath=vcat(segment(L, G, N*3-1), segment(G, X, N*4)[2:end], segment([0, 0.5, 0.5], K, N*2)[2:end], segment(K, G, N*3)[2:end])
+N = 100
 bands = reduce(hcat, eigdat.eigenvalues)
-wbands=reduce(hcat, eigvals.(H1.(eigkpt.kpoints)))
+wbands = reduce(hcat, eigvals.(H1.(eigkpt.kpoints)))
 gold = "#ffa600"
 dark_navy = "#003f5c"
 rust_orange = "#bc5090"
@@ -70,8 +69,8 @@ ax.plot(wbands[2, :], linewidth = 3, linestyle = :dashed)
 ax.plot(wbands[3, :], linewidth = 3, linestyle = :dashed)
 ax.plot(wbands[4, :], linewidth = 3, linestyle = :dashed)
 ax.set_xlabel("k-points")
-ax.set_xticks([1, 3*N, 7*N, 9*N, 12*N], ["L", "G", "X", "K", "G"])
-ax.vlines([1, 3*N, 7*N, 9*N, 12*N], minimum(bands) * 0.99, maximum(bands) * 1.01, color = :k, lw = 3)
+ax.set_xticks([1, 3 * N, 7 * N, 9 * N, 12 * N], ["L", "G", "X", "K", "G"])
+ax.vlines([1, 3 * N, 7 * N, 9 * N, 12 * N], minimum(bands) * 0.99, maximum(bands) * 1.01, color = :k, lw = 3)
 
 
 fig, ax = subplots(1, 2)
